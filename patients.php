@@ -1,5 +1,7 @@
 <html>
-
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" type="text/css">
+</head>
 <body>
     <script>
         // Grab the user's jwt from super secure cookies
