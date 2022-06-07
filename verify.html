@@ -1,0 +1,72 @@
+<html>
+
+<body>
+    <!-- jwt lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js"></script>
+
+    <!-- function to verify user -->
+    <script>
+        function verifyUser() {
+            if (document.getElementById("email").value.length < 1 || document.getElementById("pass").value.length < 1) {
+                alert("Please enter email and password");
+                return;
+            }
+
+            fetch("api/fetch.php", {
+                method: 'POST',
+                body: JSON.stringify({
+                    "email": document.getElementById("email").value,
+                    "pass": document.getElementById("pass").value,
+                    "method": "verify_login",
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then((res) => {
+                    if (res.ok) { return res.json() }
+                    else { throw "error in res: " + res.status };
+                })
+                .then((data) => {
+                    if (data.status == 200) {
+                        user = data.api_response[0];
+                        // a user was returned, buid jwt from it
+
+                        // Header
+                        var oHeader = { alg: 'HS256', typ: 'JWT' };
+                        // Payload
+                        var oPayload = {};
+                        var tNow = KJUR.jws.IntDate.get('now');
+                        var tEnd = KJUR.jws.IntDate.get('now + 1day');
+                        oPayload.email = user.email;
+                        oPayload.nbf = tNow;
+                        oPayload.iat = tNow;
+                        oPayload.exp = tEnd;
+                        oPayload.user_id = user.user_id;
+
+                        // Sign JWT, password=616161
+                        var sHeader = JSON.stringify(oHeader);
+                        var sPayload = JSON.stringify(oPayload);
+                        var sJWT = KJUR.jws.JWS.sign("HS256", sHeader, sPayload, "616161");
+
+                        // SUPER INSECURE BUT STORE AS COOKIE FOR NOW 
+                        document.cookie = `jwt=${sJWT}; path =/`;
+                        alert(data.message);
+                        window.location = "patients.php";
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch((error) => {
+                    alert("check console for error");
+                    console.log(error)
+                });
+        }
+
+
+
+    </script>
+    <input required type="text" id="email" placeholder="Enter email" /></br>
+    <input required type="password" id="pass" placeholder="Enter password" /></br>
+    <input type="submit" value="Log In" onclick="verifyUser()" />
+</body>
+
+</html>

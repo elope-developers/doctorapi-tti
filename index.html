@@ -1,0 +1,113 @@
+<h1>Welcome to Patient Fetcher</h1>
+<p>The purpose of this web app is to allow doctors and patients to sign into the portal. 
+     After signing in, the user will be taken to the "Get Patients" screen. 
+</p>
+<p>
+    Using a "secure" jwt (generated at sign in), the user will be able to fetch the api layer for patients. 
+    If the user has the role doctor, they will see all the patients (user_id and email address) in the database. 
+    However, if they are not a doctor, they will be presented with an error message, telling them they are not an authorized doctor.
+</p>
+<a href="verify.html">Log In</a>
+<hr>
+<h2>Documentation</h2>
+
+<h3>User Interface</h3>
+<h4>verify.html</h4>
+<p>The verify.html file is responsible for passing the username and password to fetch.php along side the method name "verify_login". 
+    Upon a sucessful login via the `<i>verify</i>` function, the API will return a user object. 
+    From there we build a JWT with the user_id & email. For this project, since it is an MVP, we store the JWT as a cookie. 
+    <b>This is not secure, but a temorary placeholder</b>
+</p>
+<p>After successfully storing the JWT for retrieval later, the user is then redirected to `<i>patients.php</i>`</p>
+
+<h4>patients.php</h4>
+<p>The patients.php file is responsible for passing the stored JWT to fetch.php along side the method name "get_patients". 
+    The user only has one button to push: "GET PATIENTS" which will trigger the `<i>getPatients()</i>` function. 
+    Upon a successful API call, fetch.php will either return the list of patients in the database 
+    or a status_code 500, telling the user they are not authorized. 
+</p>
+<p>If the user is a doctor, a list of patients' user_id and email will be present.</p>
+</br></br>
+<h3>API Layer</h3>
+<h4>fetch.php</h4>
+<p>fetch.php contains 2 method handlers, and 1 helper function. 
+    Switching on the method passed (`<i>get_patients</i>` or `<i>verify_login</i>`) there will always be a returned array object:</p>
+    <pre>["message"=>"string", "status"=>200|500]</pre>
+    <p>And optional array key called `<i>api_response</i>` is returned when there is data returned.</p>
+    <p>fetch.php creates a new db_connect object and passes a 3 part array to the database connection for a query to be ran.</p>
+    <pre>$params = [
+         "sql" => "sql to be ran by query, with ? for future variable binding",
+         "bind_keys" => "characters denoting what types of objects will be bound to them (i,d,s, etc...)",
+         "bind_values" => "an array of variables to be bound to the query in the order of bind_keys",
+        ]
+    </pre>
+    <p>`<i>$db_connect->query($params)</i>` is what fetches a response from the database</p>
+
+<h4>db_connect.php</h4>
+<p>db_connect.php is a class file responsible for recieving the params payload and querying the database. 
+    via the connection() function a mysqli connection is made to a mysql database hosted on ClearDB. 
+    This file also uses an environment variable for handling the mysql credentials.
+</p>
+Core Fuction - query</br>
+<pre>
+    function query($params)
+    {
+        // do database stuff here
+
+        // each array must have 2 parts
+        // param keys (s,i,d, etc...) as $params['keys']
+        // param values ("user_id")
+        $conn = connection();
+        if ($conn) {
+            $stmt = mysqli_prepare($conn, $params["sql"]);
+            mysqli_stmt_bind_param($stmt, $params["bind_keys"], ...$params["bind_values"]);
+
+            $stmt->execute();
+            $result = $stmt->get_result(); // get the mysqli result
+            $data = $result->fetch_all(MYSQLI_ASSOC);
+        } else {
+            exit("bad conn");
+        }
+        return $data;
+    }
+</pre>
+</br></br>
+<h3>Database Layer</h3>
+<h4>ClearDB</h4>
+<p>ClearDB is a 3rd party hosting service that allows a tiered scalable (starting a $0) mysql stack. The server itsself is hosted in the US-East area.</p>
+<h4>Tables</h4>
+<p>There is a single tablet called `<i>users</i>` that stores all of the user's identity data needed for this api.</p>
+<p>To create this table (modeled after what was in the request) I ran this create query</p>
+<pre>
+    CREATE TABLE `users` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` varchar(225) DEFAULT NULL,
+    `email` varchar(225) DEFAULT NULL,
+    `password` varchar(225) DEFAULT NULL,
+    `role` varchar(225) DEFAULT NULL,
+    `created_at` varchar(225) DEFAULT NULL,
+    `updated_at` varchar(225) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=154 DEFAULT CHARSET=utf8;
+</pre>
+
+<p>There weren't a lot of requirements from what I could tell, so I populated it with a few fake users setting only their user_id, email, password.</p>
+<pre>
+    INSERT INTO `users` (`id`, `user_id`, `email`, `password`, `role`, `created_at`, `updated_at`)
+VALUES
+	(1, '123', 'doctor@example.com', 'YouGoBlue1619', 'doctor', NULL, NULL),
+	(14, '456', 'patient@example.com', 'KrabbyPatties1912', 'patient', NULL, NULL),
+	(24, '789', 'fray27@example.com', 'c9Gd7ffHaz2YxdN3nYQm', 'patient', NULL, NULL),
+	(34, '901', 'meinie5@example.com', 'vxeFvEdnN6WQPgBsr2ZM', 'patient', NULL, NULL),
+	(44, '234', 'bike44@example.com', '6LRqsGjPDX3W4LwjCsTL', 'patient', NULL, NULL),
+	(54, '567', 'moulting26@example.com', 'egh7LCBaTtNb4pExGxMe', 'patient', NULL, NULL),
+	(64, '890', 'clutter8@example.com', 'xgDhXdrd6qFWe4dBfjNa', 'patient', NULL, NULL),
+	(74, '098', 'talent35@example.com', 'HyMLsh5yRGTk2N9YyH6z', 'patient', NULL, NULL),
+	(84, '765', 'fling54@example.com', 'qSp3QKsnND9XfCLNZeBL', 'patient', NULL, NULL),
+	(94, '432', 'obeisance21@example.com', 'vxeFvEdnN6WQPgBsr2ZM', 'patient', NULL, NULL),
+	(104, '210', 'array21@example.com', 'eZG8uEwUZHBQyfT5Pwqq', 'patient', NULL, NULL),
+	(114, '101', 'following96@example.com', 'zRCUySHm9w8k3NqbDRKz', 'patient', NULL, NULL),
+	(124, '202', 'chirm70@example.com', 'cPK8Z3CrzuSRptdPy7Dq', 'patient', NULL, NULL),
+	(134, '303', 'squadron22@example.com', 'cJcfh6ABSZ2wmxfYyDxH', 'patient', NULL, NULL),
+	(144, '404', 'clowder65@example.com', 't8sYpuVQMcM68vs8QSLd', 'patient', NULL, NULL);
+</pre>
